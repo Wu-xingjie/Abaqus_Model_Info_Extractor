@@ -7,9 +7,5 @@ if __name__ == "__main__":
     
     # 提取所有信息
     model_data = extractor.extract_all_info()
-    
-    # 打印摘要
-    # extractor.print_summary()
-    
-    # # 保存为JSON
-    # extractor.save_to_json('model_info.json')
+
+    extractor.show_db()

@@ -26,6 +26,22 @@ class ModelFileExtractor:
         mdb.close()
         return self.model_data
     
+    def show_db(self):
+        with open("show.log", "w") as log:
+            data = self.model_data
+            log.write("="*50 + "\n")
+            log.write("Model: {}\n".format(data['model_name']))
+            log.write("="*50 + "\n")
+
+            # 打印节点
+            for data_key in data["nodes"].keys():
+                data_val = data["nodes"][data_key]
+                if len(data_val) == 0:
+                    log.write("node empty")
+                else:
+                    for node_info in data_val:
+                        log.write("lable = {}; coord = {}; instance = {}\n".format(str(node_info["label"]), str(node_info["coordinates"]), str(node_info["instance"])))
+    
     def _extract_nodes(self, model):
         """提取节点信息"""
         nodes_info = {}
@@ -33,13 +49,10 @@ class ModelFileExtractor:
         
         for instance_name, instance in assembly.instances.items():
             nodes = instance.nodes
-            nodes_info[instance_name] = {
-                'count': len(nodes),
-                'nodes': []
-            }
+            nodes_info[instance_name] = []
             
             for node in nodes:
-                nodes_info[instance_name]['nodes'].append({
+                nodes_info[instance_name].append({
                     'label': node.label,
                     'coordinates': node.coordinates,
                     'instance': instance_name
