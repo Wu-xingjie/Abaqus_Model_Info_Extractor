@@ -14,15 +14,12 @@ class ModelFileExtractor:
     
     # 提取模型所有信息
     def extract_all_info(self):
-        # 提取所有模型信息
         mdb = openMdb(self.model_name)
         model = mdb.models['Model-1']
-        
         self.model_data = {
             'model_name': model.name,
             'nodes': self._extract_nodes(model)
         }
-        
         mdb.close()
         return self.model_data
     
