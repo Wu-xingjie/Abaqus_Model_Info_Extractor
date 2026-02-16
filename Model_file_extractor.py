@@ -20,20 +20,19 @@ class ModelFileExtractor:
             'model_name': model.name,
             'nodes': self._extract_nodes(model),
             "elements" : self._extract_elements(model),
-            "materials" : self._extract_materials(model)
+            "materials" : self._extract_materials(model),
+            "assignments" : self._extract_section_assignments(model)
         }
         self._extract_sections(model)
-        self._extract_materials(model)
         mdb.close()
+    
+    def getModelData(self):
+        self.extract_all_info()
         return self.model_data
     
     def show_db(self):
         with open("show.log", "w") as log:
             data = self.model_data
-            log.write("="*50 + "\n")
-            log.write("Model: {}\n".format(data['model_name']))
-            log.write("="*50 + "\n")
-
             # 打印节点
             for data_key in data["nodes"].keys():
                 data_val = data["nodes"][data_key]
@@ -43,17 +42,51 @@ class ModelFileExtractor:
                     for node_info in data_val:
                         log.write("lable = {}; coord = {}; instance = {}\n".format(str(node_info["label"]), str(node_info["coordinates"]), str(node_info["instance"])))
 
+    # 获取截面指派信息
+    def _extract_section_assignments(self, model):
+        all_assignments = []
+        # 遍历部件中截面指派信息
+        for part_name, part in model.parts.items():
+            if hasattr(part, 'sectionAssignments') and part.sectionAssignments:
+                for i, assignment in enumerate(part.sectionAssignments):
+                    # 获取指派信息
+                    sec_name = assignment.sectionName
+                    
+                    # 通过截面名称获取截面对象
+                    section = model.sections[sec_name]
+                    material_name = None
+                    if section and hasattr(section, 'material'):
+                        material_name = section.material
+                    # 整理信息
+                    assign_info = {
+                        'location': 'part',
+                        'part_name': part_name,
+                        'assignment_index': i,
+                        'section_name': sec_name,
+                        'material_name': material_name,
+                        'region': assignment.region,  # 这是一个Set对象
+                        'suppressed': assignment.suppressed,
+                    }
+                    all_assignments.append(assign_info)
+                    
+        # 整理all_assignments中section_name和part_name信息
+        part_sec_pairs = {}
+        for assign in all_assignments:
+            part_sec_pairs[assign["part_name"]] = assign["material_name"]
 
-
+        with open("assign.log", "w") as log:
+            for part_name, mat_name in part_sec_pairs.items():
+                log.write("{} -> {}\n".format(part_name, mat_name))
+            
+        return all_assignments
+    
     # 提取节点信息
     def _extract_nodes(self, model):
         nodes_info = {}
         assembly = model.rootAssembly
-        
         for instance_name, instance in assembly.instances.items():
             nodes = instance.nodes
             nodes_info[instance_name] = []
-            
             for node in nodes:
                 nodes_info[instance_name].append({
                     'label': node.label,
@@ -61,26 +94,23 @@ class ModelFileExtractor:
                     'instance': instance_name
                 })
         return nodes_info
-    
+        
     # 提取单元信息
     def _extract_elements(self, model):
         elements_info = {}
         assembly = model.rootAssembly
-        
         for instance_name, instance in assembly.instances.items():
             elements = instance.elements
             elements_info[instance_name] = []
-            
             for element in elements:
                 # 临时代码
-                with open("test.log", "w") as log:
+                with open("element_test.log", "w") as log:
                     log.write("type(element.label):{}\n".format(str(type(element.label))))
                     log.write("type(element.type):{}\n".format(str(type(element.type))))
                     log.write("type(element.elem_nodes):{}\n".format(str(type(element.connectivity))))
                     log.write("element.type = {}\n".format(element.type))
                     log.write("element.elem_nodes = {}\n".format(element.connectivity))
-                    # log.write("type(element.section):{}\n".format(str(type(element.section))))
-                    
+                    log.write("element = {}\n".format(element))
                 elements_info[instance_name].append({
                     'label': element.label,
                     'type': element.type,
@@ -101,20 +131,13 @@ class ModelFileExtractor:
     
     def _extract_materials(self, model):
         materials_info = {}
-        
         materials = model.materials
         for mat_name, mat_val in materials.items():
             mat_data = {}
             mat_data["E"] = mat_val.elastic.table[0][0]
             mat_data["NU"] = mat_val.elastic.table[0][1]
             materials_info[mat_name] = mat_data
-        
-        # 临时代码 
-        # materials = model.materials
-        # with open("material_test.log", "w") as log:
-        #     for mat_name, mat_val in materials.items():
-        #         log.write("name -> {}\n".format(mat_name))
-        #         log.write("value-> {}\n".format(mat_val))
-        #         log.write("mat_data-> {}\n".format(mat_val.elastic.table))
-
+        with open("mat_test.log", "w") as log:
+            for mat_name, mat in materials_info.items():
+                log.write("mat_name : {}".format(mat_name))
         return materials_info

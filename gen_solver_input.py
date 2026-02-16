@@ -8,7 +8,7 @@ import tool
 
 class GenSolverInput:
     def __init__(self, extractor):
-        self._model_info = extractor.extract_all_info()
+        self._model_info = extractor.getModelData()
     
     # 生成求解器计算文件
     def GenInput(self):
