@@ -21,9 +21,10 @@ class ModelFileExtractor:
             'nodes': self._extract_nodes(model),
             "elements" : self._extract_elements(model),
             "materials" : self._extract_materials(model),
-            "assignments" : self._extract_section_assignments(model)
+            "assignments" : self._extract_section_assignments(model),
+            "sections" : self._extract_sections(model)
         }
-        self._extract_sections(model)
+        # self._extract_sections(model)
         mdb.close()
     
     def getModelData(self):
@@ -119,15 +120,22 @@ class ModelFileExtractor:
         return elements_info
     
     def _extract_sections(self, model):
+        sections_info = {}
         sections = model.sections
-        with open("section_test.log", "w") as log:
-            log.write("key type -> {};\n".format(str(type(sections))))
-            for k, v in sections.items():
-                log.write("key type -> {}; \n".format(str(type(k))))
-                log.write("key      -> {}; \n".format(k))
-                log.write("val type -> {}; \n".format(str(type(v))))
-                log.write("val      -> {}; \n".format(v))
-                log.write("materil  -> {}; \n".format(v.material))
+
+        for sec_key, sec_val in sections.items():
+            temp_section = {}
+            temp_section["material"] = sec_val.material
+            temp_section["thickness"] = sec_val.thickness
+            sections_info[sec_val.name] = temp_section
+        
+        # with open("section_test.log", "w") as log:
+        #     for k, v in sections_info.items():
+        #         log.write("sec_name -> {}\n".format(k))
+        #         for data_name, data_val in v.items():
+        #             log.write("{} -> {}\n".format(data_name, data_val))    
+        
+        return sections_info
     
     def _extract_materials(self, model):
         materials_info = {}

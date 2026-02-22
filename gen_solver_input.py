@@ -19,11 +19,24 @@ class GenSolverInput:
         # 生成材料
         mat_list = self.GenMatInfo()
         input_string.extend(mat_list)
+        # 生成属性
+        props_list = self.GenPropertyInfo()
+        input_string.extend(props_list)
 
         input_dir = os.path.abspath(os.curdir)
         input_path = os.path.join(input_dir, "sovler.input")
         with open(input_path, "w") as input:
             input.writelines(input_string)
+
+    # 生成属性信息
+    def GenPropertyInfo(self):
+        input_string = []
+        properties_info = self._model_info["sections"]
+        for section_name, section_val in properties_info.items():
+            sec_id = tool.GetItemId(section_name)
+            mat_id = tool.GetItemId(section_val["material"])
+            input_string.append("PSOLID,{},{}".format(sec_id, mat_id))
+        return input_string
 
     # 生成材料信息
     def GenMatInfo(self):
