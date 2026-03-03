@@ -16,15 +16,13 @@ class ModelFileExtractor:
     def extract_all_info(self):
         mdb = openMdb(self.model_name)
         model = mdb.models['Model-1']
-        self.model_data = {
-            'model_name': model.name,
-            'nodes': self._extract_nodes(model),
-            "elements" : self._extract_elements(model),
-            "materials" : self._extract_materials(model),
-            "assignments" : self._extract_section_assignments(model),
-            "sections" : self._extract_sections(model)
-        }
-        # self._extract_sections(model)
+        self.model_data["model_name"] = model.name
+        # 截面指派抓取需要放在单元抓取之前
+        self.model_data["assignments"] = self._extract_section_assignments(model)
+        self.model_data["nodes"] = self._extract_nodes(model)
+        self.model_data["elements"] = self._extract_elements(model)
+        self.model_data["sections"] = self._extract_sections(model)
+        self.model_data["materials"] = self._extract_materials(model)
         mdb.close()
     
     def getModelData(self):
@@ -46,39 +44,40 @@ class ModelFileExtractor:
     # 获取截面指派信息
     def _extract_section_assignments(self, model):
         all_assignments = []
-        # 遍历部件中截面指派信息
-        for part_name, part in model.parts.items():
-            if hasattr(part, 'sectionAssignments') and part.sectionAssignments:
-                for i, assignment in enumerate(part.sectionAssignments):
-                    # 获取指派信息
-                    sec_name = assignment.sectionName
-                    
-                    # 通过截面名称获取截面对象
-                    section = model.sections[sec_name]
-                    material_name = None
-                    if section and hasattr(section, 'material'):
-                        material_name = section.material
-                    # 整理信息
-                    assign_info = {
-                        'location': 'part',
-                        'part_name': part_name,
-                        'assignment_index': i,
-                        'section_name': sec_name,
-                        'material_name': material_name,
-                        'region': assignment.region,  # 这是一个Set对象
-                        'suppressed': assignment.suppressed,
-                    }
-                    all_assignments.append(assign_info)
-                    
-        # 整理all_assignments中section_name和part_name信息
-        part_sec_pairs = {}
-        for assign in all_assignments:
-            part_sec_pairs[assign["part_name"]] = assign["material_name"]
-
         with open("assign.log", "w") as log:
+            # 遍历部件中截面指派信息
+            for part_name, part in model.parts.items():
+                if hasattr(part, 'sectionAssignments') and part.sectionAssignments:
+                    for i, assignment in enumerate(part.sectionAssignments):
+                        # 获取指派信息
+                        sec_name = assignment.sectionName
+                        
+                        # 通过截面名称获取截面对象
+                        section = model.sections[sec_name]
+                        material_name = None
+                        if section and hasattr(section, 'material'):
+                            material_name = section.material
+                        # 整理信息
+
+                        log.write("assignment -> {}\n".format(assignment))
+                        
+                        assign_info = {
+                            'location': 'part',
+                            'part_name': part_name,
+                            'assignment_index': i,
+                            'section_name': sec_name,
+                            'material_name': material_name,
+                            'region': assignment.region,  # 这是一个Set对象
+                            'suppressed': assignment.suppressed,
+                        }
+                        all_assignments.append(assign_info)
+                        
+            # 整理all_assignments中section_name和part_name信息
+            part_sec_pairs = {}
+            for assign in all_assignments:
+                part_sec_pairs[assign["part_name"]] = assign["material_name"]
             for part_name, mat_name in part_sec_pairs.items():
                 log.write("{} -> {}\n".format(part_name, mat_name))
-            
         return all_assignments
     
     # 提取节点信息
@@ -104,6 +103,7 @@ class ModelFileExtractor:
             elements = instance.elements
             elements_info[instance_name] = []
             for element in elements:
+
                 # 临时代码
                 with open("element_test.log", "w") as log:
                     log.write("type(element.label):{}\n".format(str(type(element.label))))
@@ -112,29 +112,24 @@ class ModelFileExtractor:
                     log.write("element.type = {}\n".format(element.type))
                     log.write("element.elem_nodes = {}\n".format(element.connectivity))
                     log.write("element = {}\n".format(element))
+
                 elements_info[instance_name].append({
                     'label': element.label,
                     'type': element.type,
-                    'elem_nodes': element.connectivity,
+                    'elem_nodes' : element.connectivity,
                 })
+                # 获取单元属性
+                
         return elements_info
     
     def _extract_sections(self, model):
         sections_info = {}
         sections = model.sections
-
         for sec_key, sec_val in sections.items():
             temp_section = {}
             temp_section["material"] = sec_val.material
             temp_section["thickness"] = sec_val.thickness
-            sections_info[sec_val.name] = temp_section
-        
-        # with open("section_test.log", "w") as log:
-        #     for k, v in sections_info.items():
-        #         log.write("sec_name -> {}\n".format(k))
-        #         for data_name, data_val in v.items():
-        #             log.write("{} -> {}\n".format(data_name, data_val))    
-        
+            sections_info[sec_val.name] = temp_section   
         return sections_info
     
     def _extract_materials(self, model):
