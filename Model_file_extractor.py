@@ -114,6 +114,8 @@ class ModelFileExtractor:
                     log.write("element = {}\n".format(element))
 
                 elements_info[instance_name].append({
+                    # 暂时写死
+                    'prop_id': 1,
                     'label': element.label,
                     'type': element.type,
                     'elem_nodes' : element.connectivity,

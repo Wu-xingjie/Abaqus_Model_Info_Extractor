@@ -16,6 +16,9 @@ class GenSolverInput:
         # 生成节点
         node_list = self.GenNodeInfo()
         input_string.extend(node_list)
+        # 生成单元
+        elem_list= self.GenElemInfo()
+        input_string.extend(elem_list)
         # 生成材料
         mat_list = self.GenMatInfo()
         input_string.extend(mat_list)
@@ -45,6 +48,40 @@ class GenSolverInput:
         for mat_name, mat_val in materials_info.items():
             mat_id = tool.GetItemId(mat_name)
             input_string.append("MAT1,{},{},{}\n".format(mat_id, mat_val["E"], mat_val["NU"]))
+        return input_string
+
+    # 生成单元信息
+    def GenElemInfo(self):
+        input_string = []
+        elems_info = self._model_info["elements"]
+        for key, elems in elems_info.items():
+            for elem in elems:
+                pid = elem["prop_id"]
+                lab = elem["label"]
+                elem_type = ""
+                if type == "C3D8R":
+                    elem_type = "CHEXA8"
+                input_string.append("CHEXA8,{},{},{},{},{},{},{},{},{}\ncontinue,{}\n".format(lab, pid, \
+                                                                    elem["elem_nodes"][0],\
+                                                                    elem["elem_nodes"][1],\
+                                                                    elem["elem_nodes"][2],\
+                                                                    elem["elem_nodes"][3],\
+                                                                    elem["elem_nodes"][4],\
+                                                                    elem["elem_nodes"][5],\
+                                                                    elem["elem_nodes"][6],\
+                                                                    elem["elem_nodes"][7]))
+
+        # for data_key in elems_info.keys():
+        #     data_val = elems_info[data_key]
+        #     if len(data_val) == 0:
+        #         input_string.append("node empty")
+        #     else:
+        #         for node in data_val:
+        #             nid = node["label"]
+        #             x_val = node["coordinates"][0]
+        #             y_val = node["coordinates"][1]
+        #             z_val = node["coordinates"][2]
+        #             input_string.append("GRID,{},,{},{},{}\n".format(str(nid), str(x_val), str(y_val), str(z_val)))
         return input_string
 
     # 生成节点信息
